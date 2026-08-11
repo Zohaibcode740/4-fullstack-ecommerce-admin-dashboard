@@ -1,16 +1,108 @@
-# React + Vite
+# 🛍️ E-Commerce App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern full-stack e-commerce application built with React, Node.js, Express, and MongoDB.
 
-Currently, two official plugins are available:
+The application provides a responsive shopping experience with product browsing, categories, cart management, authentication, checkout, and an admin dashboard.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🚀 Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 👤 User Features
 
-## Expanding the ESLint configuration
+- User registration and login
+- JWT-based authentication
+- Browse products
+- Browse products by category
+- Featured products
+- Product recommendations
+- Add products to cart
+- Update product quantity
+- Remove products from cart
+- Coupon support
+- Secure checkout with Stripe
+- Order success and cancellation handling
+- Responsive design for desktop, tablet, and mobile
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🔐 Admin Features
+
+- Admin authentication
+- Create products
+- Upload product images
+- Delete products
+- Manage featured products
+- View products
+- View users and orders
+- Sales and revenue analytics
+- Dashboard with charts
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+- React
+- Vite
+- Tailwind CSS
+- React Router
+- Zustand
+- Axios
+- Framer Motion
+- Recharts
+- Lucide React
+- React Hot Toast
+
+### Backend
+
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT
+- Zod
+- bcryptjs
+- Cookie Parser
+
+### Services
+
+- Stripe
+- Cloudinary
+- Redis / Upstash
+
+---
+
+## 📁 Project Structure
+
+```text
+e-commerce/
+│
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── lib/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── utils/
+│   │   ├── validators/
+│   │   └── server.js
+│   │
+│   └── package.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── stores/
+│   │   ├── lib/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── index.css
+│   │
+│   └── package.json
+│
+├── .env
+├── .gitignore
+└── package.json

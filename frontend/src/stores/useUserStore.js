@@ -1,42 +1,69 @@
-import toast from "react-hot-toast";
 import { create } from "zustand";
-import { axiosInstance } from "../lib/axios.js";
+import { toast } from "react-hot-toast";
+import axiosInstance from "../lib/axios.js";
+import { useCartStore } from "./useCartStore.js";
 
 let isRefreshing = false;
 let failedQueue = [];
 
-const processQueue = (error) => {
+const processQueue = (error = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
-    if (error) reject(error);
-    else resolve();
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
+    }
   });
+
   failedQueue = [];
 };
 
 export const useUserStore = create((set) => ({
-  checkAuth: async () => {
-    try {
-      const res = await axiosInstance.get("/auth/profile");
-      set({ checkingAuth: false, user: res.data });
-    } catch {
-      set({ checkingAuth: false, user: null });
-    }
-  },
+  user: null,
   checkingAuth: true,
   loading: false,
 
+  checkAuth: async () => {
+    set({ checkingAuth: true });
+
+    try {
+      const res = await axiosInstance.get("/auth/profile", {
+        _skipRefresh: true,
+      });
+
+      set({
+        checkingAuth: false,
+        user: res.data,
+      });
+    } catch {
+      set({
+        checkingAuth: false,
+        user: null,
+      });
+    }
+  },
+
   login: async (formData) => {
     set({ loading: true });
+
     try {
       const res = await axiosInstance.post("/auth/login", formData);
-      set({ loading: false, user: res.data });
+
+      set({
+        loading: false,
+        user: res.data,
+      });
+
       toast.success("Chào mừng trở lại");
+
       return res.data;
     } catch (error) {
       set({ loading: false });
+
       const msg =
         error.response?.data?.message ||
         "Đã xảy ra lỗi trong quá trình đăng nhập";
+
       toast.error(msg);
       throw error;
     }
@@ -45,50 +72,69 @@ export const useUserStore = create((set) => ({
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
+
       set({ user: null });
+
+      useCartStore.getState().clearCart();
+
       toast.success("Đã đăng xuất");
     } catch (error) {
       const msg =
         error.response?.data?.message ||
         "Đã xảy ra lỗi trong quá trình đăng xuất";
+
       toast.error(msg);
     }
   },
 
   signup: async (formData) => {
     set({ loading: true });
+
     try {
       const res = await axiosInstance.post("/auth/signup", formData);
-      set({ loading: false, user: res.data });
+
+      set({
+        loading: false,
+        user: res.data,
+      });
+
       toast.success("Tạo tài khoản thành công");
+
       return res.data;
     } catch (error) {
       set({ loading: false });
+
       const msg =
         error.response?.data?.message ||
         "Đã xảy ra lỗi trong quá trình đăng ký";
+
       toast.error(msg);
       throw error;
     }
   },
-  user: null,
 }));
 
 axiosInstance.interceptors.response.use(
   (response) => response,
+
   async (error) => {
     const originalRequest = error.config;
 
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
+      !originalRequest._skipRefresh &&
       originalRequest.url !== "/auth/login" &&
       originalRequest.url !== "/auth/refresh-token" &&
       originalRequest.url !== "/auth/logout"
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          failedQueue.push({ reject, resolve });
+          failedQueue.push({
+            resolve,
+            reject,
+          });
         }).then(() => axiosInstance(originalRequest));
       }
 
@@ -97,12 +143,20 @@ axiosInstance.interceptors.response.use(
 
       try {
         await axiosInstance.post("/auth/refresh-token");
+
         processQueue();
+
         return axiosInstance(originalRequest);
-      } catch {
-        processQueue();
-        useUserStore.setState({ user: null });
-        return Promise.reject(error);
+      } catch (refreshError) {
+        processQueue(refreshError);
+
+        useUserStore.setState({
+          user: null,
+        });
+
+        useCartStore.getState().clearCart();
+
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
