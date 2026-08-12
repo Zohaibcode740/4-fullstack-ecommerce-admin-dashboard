@@ -5,10 +5,17 @@ const userSchema = new mongoose.Schema(
   {
     cartItems: [
       {
-        product: { ref: "Product", type: mongoose.Schema.Types.ObjectId },
-        quantity: { default: 1, type: Number },
+        product: {
+          ref: "Product",
+          type: mongoose.Schema.Types.ObjectId,
+        },
+        quantity: {
+          default: 1,
+          type: Number,
+        },
       },
     ],
+
     email: {
       lowercase: true,
       required: true,
@@ -16,18 +23,35 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
-    name: { required: true, trim: true, type: String },
-    password: { minlength: 6, required: true, type: String },
-    role: { default: "customer", enum: ["customer", "admin"], type: String },
+
+    name: {
+      required: true,
+      trim: true,
+      type: String,
+    },
+
+    password: {
+      minlength: 6,
+      required: true,
+      type: String,
+    },
+
+    role: {
+      default: "customer",
+      enum: ["customer", "admin"],
+      type: String,
+    },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 userSchema.methods.comparePassword = async function (password) {
