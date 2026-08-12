@@ -9,14 +9,23 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useCartStore } from "../stores/useCartStore.js";
 import { useUserStore } from "../stores/useUserStore.js";
 
 export default function Navbar() {
   const { user, logout } = useUserStore();
+  const { cart } = useCartStore();
+
+  const cartCount = cart.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navLinkClass =
     "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer hover:bg-[var(--color-paper-3)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]";
+
   const mobileNavLinkClass =
     "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors duration-150 cursor-pointer hover:bg-[var(--color-paper-3)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]";
 
@@ -48,7 +57,22 @@ export default function Navbar() {
 
         <nav className="hidden items-center gap-1 md:flex">
           <Link className={navLinkClass} to="/cart">
-            <ShoppingCart className="h-4 w-4" />
+            <span className="relative">
+              <ShoppingCart className="h-4 w-4" />
+
+              {cartCount > 0 && (
+                <span
+                  className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-bold text-[10px]"
+                  style={{
+                    background: "var(--color-accent)",
+                    color: "var(--color-paper)",
+                  }}
+                >
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </span>
+
             <span>Giỏ hàng</span>
           </Link>
 
@@ -75,6 +99,7 @@ export default function Navbar() {
                 <LogIn className="h-4 w-4" />
                 <span>Đăng nhập</span>
               </Link>
+
               <Link
                 className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-colors duration-150 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                 style={{
@@ -115,7 +140,22 @@ export default function Navbar() {
               onClick={() => setMobileOpen(false)}
               to="/cart"
             >
-              <ShoppingCart className="h-4 w-4" />
+              <span className="relative">
+                <ShoppingCart className="h-4 w-4" />
+
+                {cartCount > 0 && (
+                  <span
+                    className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-bold text-[10px]"
+                    style={{
+                      background: "var(--color-accent)",
+                      color: "var(--color-paper)",
+                    }}
+                  >
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </span>
+
               <span>Giỏ hàng</span>
             </Link>
 
@@ -153,6 +193,7 @@ export default function Navbar() {
                   <LogIn className="h-4 w-4" />
                   <span>Đăng nhập</span>
                 </Link>
+
                 <Link
                   className={mobileNavLinkClass}
                   onClick={() => setMobileOpen(false)}

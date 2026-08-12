@@ -1,6 +1,7 @@
-import { stripe } from "../lib/stripe.js";
 import Coupon from "../models/coupon.model.js";
 import Order from "../models/order.model.js";
+import User from "../models/user.model.js";
+import { stripe } from "../lib/stripe.js";
 
 export const createNewCoupon = async (userId) => {
   await Coupon.findOneAndDelete({ userId });
@@ -13,6 +14,7 @@ export const createNewCoupon = async (userId) => {
   });
 
   await newCoupon.save();
+
   return newCoupon;
 };
 
@@ -25,9 +27,12 @@ export const createCheckoutSession = async (req, res) => {
     }
 
     let totalAmount = 0;
+
     const lineItems = products.map((product) => {
       const amount = Math.round(product.price);
+
       totalAmount += amount * product.quantity;
+
       return {
         price_data: {
           currency: "vnd",
@@ -42,6 +47,7 @@ export const createCheckoutSession = async (req, res) => {
     });
 
     let coupon = null;
+
     if (couponCode) {
       coupon = await Coupon.findOne({
         code: couponCode.toUpperCase(),
@@ -50,9 +56,18 @@ export const createCheckoutSession = async (req, res) => {
       });
 
       if (coupon) {
-        totalAmount -= Math.round(
-          totalAmount * (coupon.discountPercentage / 100),
-        );
+        const discountRatio = 1 - coupon.discountPercentage / 100;
+
+        totalAmount = 0;
+
+        for (const item of lineItems) {
+          item.price_data.unit_amount = Math.round(
+            item.price_data.unit_amount * discountRatio,
+          );
+
+          totalAmount +=
+            item.price_data.unit_amount * item.quantity;
+        }
       }
     }
 
@@ -81,7 +96,10 @@ export const createCheckoutSession = async (req, res) => {
       await createNewCoupon(req.user._id);
     }
 
-    res.json({ id: session.id });
+    res.json({
+      id: session.id,
+      url: session.url,
+    });
   } catch (error) {
     console.error("Lỗi tạo checkout session:", error.message);
     res.status(500).json({ message: "Lỗi máy chủ" });
@@ -91,16 +109,35 @@ export const createCheckoutSession = async (req, res) => {
 export const checkoutSuccess = async (req, res) => {
   try {
     const { sessionId } = req.body;
+
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
-      return res.status(400).json({ message: "Thanh toán chưa hoàn tất" });
+      return res.status(400).json({
+        message: "Thanh toán chưa hoàn tất",
+      });
+    }
+
+    const existingOrder = await Order.findOne({
+      stripeSessionId: session.id,
+    });
+
+    if (existingOrder) {
+      return res.json({
+        message: "Thanh toán thành công",
+        success: true,
+      });
     }
 
     if (session.metadata.couponCode) {
       await Coupon.findOneAndUpdate(
-        { code: session.metadata.couponCode },
-        { isActive: false },
+        {
+          code: session.metadata.couponCode,
+          userId: session.metadata.userId,
+        },
+        {
+          isActive: false,
+        },
       );
     }
 
@@ -119,15 +156,26 @@ export const checkoutSuccess = async (req, res) => {
 
     await newOrder.save();
 
-    await Coupon.findOneAndDelete({ userId: session.metadata.userId });
+    await User.findByIdAndUpdate(session.metadata.userId, {
+      $set: { cartItems: [] },
+    });
 
     if (session.amount_total >= 5000000) {
       await createNewCoupon(session.metadata.userId);
     }
 
-    res.json({ message: "Thanh toán thành công", success: true });
+    res.json({
+      message: "Thanh toán thành công",
+      success: true,
+    });
   } catch (error) {
-    console.error("Lỗi xử lý thanh toán thành công:", error.message);
-    res.status(500).json({ message: "Lỗi máy chủ" });
+    console.error(
+      "Lỗi xử lý thanh toán thành công:",
+      error.message,
+    );
+
+    res.status(500).json({
+      message: "Lỗi máy chủ",
+    });
   }
 };
